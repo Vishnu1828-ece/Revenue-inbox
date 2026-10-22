@@ -7,9 +7,8 @@ st.set_page_config(
     page_title="Revenue Intelligence Inbox", page_icon="📊", layout="wide"
 )
 
-
+# --- 1. INITIALIZE SESSION STATE DATA (Mock Database) ---
 if "calls_df" not in st.session_state:
-  # Initial dataset matching sales call logs
   initial_data = [
       {
           "call_id": "CALL-101",
@@ -18,7 +17,10 @@ if "calls_df" not in st.session_state:
           "deal_value": 45000,
           "duration_min": 32,
           "rep_talk_pct": 55,
-          "transcript_snippet": "We like the product, but CompetitorX is offering a 20% discount.",
+          "transcript_snippet": (
+              "We like the product, but CompetitorX is offering a 20%"
+              " discount."
+          ),
           "manual_override_category": None,
       },
       {
@@ -28,7 +30,9 @@ if "calls_df" not in st.session_state:
           "deal_value": 120000,
           "duration_min": 45,
           "rep_talk_pct": 70,
-          "transcript_snippet": "Budget is tight right now, too expensive for this quarter.",
+          "transcript_snippet": (
+              "Budget is tight right now, too expensive for this quarter."
+          ),
           "manual_override_category": None,
       },
       {
@@ -38,18 +42,23 @@ if "calls_df" not in st.session_state:
           "deal_value": 85000,
           "duration_min": 20,
           "rep_talk_pct": 40,
-          "transcript_snippet": "Let's schedule a technical deep dive for next Tuesday. Send the proposal.",
+          "transcript_snippet": (
+              "Let's schedule a technical deep dive for next Tuesday. Send the"
+              " proposal."
+          ),
           "manual_override_category": None,
       },
   ]
   st.session_state["calls_df"] = pd.DataFrame(initial_data)
 
 
+# --- 2. RULE-BASED ROUTING & ANALYSIS ENGINE (No AI) ---
 def apply_rules(row):
   text = str(row["transcript_snippet"]).lower()
 
-  # Keyword checks
-      has_competitor = any(w in text for w in ["competitor", "competitorx", "rival", "alternative"])
+  has_competitor = any(
+      w in text for w in ["competitor", "competitorx", "rival", "alternative"]
+  )
   has_pricing = any(
       w in text
       for w in ["expensive", "discount", "budget", "cost", "price", "too high"]
@@ -57,7 +66,6 @@ def apply_rules(row):
   has_action = any(
       w in text for w in ["schedule", "proposal", "deep dive", "follow up"]
   )
-
 
   if row["deal_value"] > 100000 and has_pricing:
     category = "High-Value Pricing Risk"
@@ -75,22 +83,19 @@ def apply_rules(row):
 
 df = st.session_state["calls_df"].copy()
 df["auto_category"] = df.apply(apply_rules, axis=1)
-
 df["final_category"] = df["manual_override_category"].fillna(df["auto_category"])
 
-
+# --- 3. STREAMLIT USER INTERFACE ---
 st.title("📊 Revenue Intelligence Inbox")
 st.markdown(
     "Sales Manager dashboard for reviewing call activity, handling routing,"
     " and managing data updates."
 )
 
-
 tab = st.sidebar.radio(
     "Navigation",
     ["Dashboard Metrics", "Inbox & Routing", "Import / Update Tests", "Exports"],
 )
-
 
 if tab == "Dashboard Metrics":
   st.header("Executive Summary Metrics")
@@ -113,7 +118,6 @@ if tab == "Dashboard Metrics":
   cat_counts = df["final_category"].value_counts()
   st.bar_chart(cat_counts)
 
-
 elif tab == "Inbox & Routing":
   st.header("Conversation Routing Inbox")
   st.markdown(
@@ -121,7 +125,6 @@ elif tab == "Inbox & Routing":
       " routing corrections."
   )
 
- 
   selected_cat = st.selectbox(
       "Filter by Routing Queue", ["All"] + list(df["final_category"].unique())
   )
@@ -129,18 +132,7 @@ elif tab == "Inbox & Routing":
       df if selected_cat == "All" else df[df["final_category"] == selected_cat]
   )
 
-  st.dataframe(
-      filtered_df[[
-          "call_id",
-          "rep_name",
-          "account",
-          "deal_value",
-          "rep_talk_pct",
-          "final_category",
-          "transcript_snippet",
-      ]],
-      use_container_width=True,
-  )
+  st.dataframe(filtered_df, use_container_width=True)
 
   st.subheader("Manual Override & Correction")
   call_to_edit = st.selectbox(
@@ -162,7 +154,6 @@ elif tab == "Inbox & Routing":
     st.success(f"Successfully updated {call_to_edit}!")
     st.rerun()
 
-
 elif tab == "Import / Update Tests":
   st.header("Repeated Imports & Update Testing")
   st.markdown(
@@ -171,7 +162,7 @@ elif tab == "Import / Update Tests":
   )
 
   uploaded_file = st.file_uploader(
-      "Upload Call Data CSV (Columns: call_id, rep_name, account, deal_value,"
+      "Upload Call Data CSV (call_id, rep_name, account, deal_value,"
       " duration_min, rep_talk_pct, transcript_snippet)",
       type=["csv"],
   )
@@ -182,7 +173,6 @@ elif tab == "Import / Update Tests":
 
     if st.button("Process Import (UPSERT / Update Records)"):
       current_data = st.session_state["calls_df"]
-      # UPSERT logic: Drop matching call_ids and append new rows
       combined_df = pd.concat([current_data, new_import_df]).drop_duplicates(
           subset=["call_id"], keep="last"
       )
@@ -192,12 +182,10 @@ elif tab == "Import / Update Tests":
       )
       st.rerun()
 
-
 elif tab == "Exports":
   st.header("Organized Data Exports & Manifest")
   st.markdown("Download clean CSV exports along with a JSON manifest file.")
 
-  # Export CSV button data
   csv_data = df.to_csv(index=False)
   st.download_button(
       label="Download Full Calls CSV Export",
@@ -206,7 +194,6 @@ elif tab == "Exports":
       mime="text/csv",
   )
 
- 
   manifest_content = {
       "generated_at": datetime.utcnow().isoformat() + "Z",
       "exported_files": [
