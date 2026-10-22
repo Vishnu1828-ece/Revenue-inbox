@@ -49,9 +49,7 @@ def apply_rules(row):
   text = str(row["transcript_snippet"]).lower()
 
   # Keyword checks
-  has_competitor = any(
-      w in text for w in ["competitor", "competitorx", "rival", alternative]
-  )
+      has_competitor = any(w in text for w in ["competitor", "competitorx", "rival", "alternative"])
   has_pricing = any(
       w in text
       for w in ["expensive", "discount", "budget", "cost", "price", "too high"]
