@@ -7,7 +7,6 @@ st.set_page_config(
     page_title="Revenue Intelligence Inbox", page_icon="📊", layout="wide"
 )
 
-# --- 1. INITIALIZE SESSION STATE DATA (Enterprise Mock Database) ---
 if "calls_df" not in st.session_state:
   initial_data = [
       {
@@ -209,8 +208,6 @@ if "calls_df" not in st.session_state:
   ]
   st.session_state["calls_df"] = pd.DataFrame(initial_data)
 
-
-# --- 2. RULE-BASED ROUTING & ANALYSIS ENGINE (Deterministic) ---
 def apply_rules(row):
   text = str(row["transcript_snippet"]).lower()
 
@@ -260,7 +257,6 @@ df = st.session_state["calls_df"].copy()
 df["auto_category"] = df.apply(apply_rules, axis=1)
 df["final_category"] = df["manual_override_category"].fillna(df["auto_category"])
 
-# --- 3. STREAMLIT USER INTERFACE ---
 st.title("📊 Revenue Intelligence Inbox")
 st.markdown(
     "Sales Manager dashboard for reviewing regional call activity, automated"
